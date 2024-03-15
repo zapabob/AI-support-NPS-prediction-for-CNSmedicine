@@ -268,8 +268,6 @@ def calculate_descriptors(mol):
 
     return descriptors
 
-    return descriptors
-
 def run_gui_app():
     app = GUIApp()
     app.mainloop()
