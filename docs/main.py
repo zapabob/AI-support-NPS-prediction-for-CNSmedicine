@@ -253,13 +253,20 @@ class GUIApp(tk.Tk):
         messagebox.showerror("Error", f"{error_message}\n\n{exception}")
 
 def calculate_descriptors(mol):
-    """Calculate descriptors for a given compound"""
+    """Calculate all available descriptors for a given compound"""
     descriptors = []
 
-    # Basic descriptors
-    descriptors.append(Descriptors.MolWt(mol))
-    descriptors.append(Descriptors.HeavyAtomCount(mol))
-    # Add other descriptors...
+    # Add all available descriptors from RDKit
+    descriptor_funcs = [x for x in dir(Descriptors) if x.startswith('_')]
+    for desc_func in descriptor_funcs:
+        func = getattr(Descriptors, desc_func)
+        try:
+            descriptor_value = func(mol)
+            descriptors.append(descriptor_value)
+        except Exception as e:
+            print(f"Error calculating descriptor {desc_func}: {e}")
+
+    return descriptors
 
     return descriptors
 
