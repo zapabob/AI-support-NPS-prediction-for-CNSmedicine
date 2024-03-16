@@ -1,10 +1,14 @@
 compound-activity-predictor/
 ├── data/
+│   ├── models/
+│   │   ├── gcn_model.pt
+│   │   └── rf_model.pkl
+│   └── metrics/
+│       ├── gcn_metrics.csv
+│       └── rf_metrics.csv
 ├── docs/
 │   ├── motivation.md
-│   ├── references.md
-│   └── ...
-├── models/
+│   └── references.md
 ├── tests/
 ├── utils/
 │   ├── __init__.py
@@ -16,5 +20,4 @@ compound-activity-predictor/
 ├── gui.py
 ├── requirements.txt
 ├── README.md
-├── setup.py
-└── .gitignore
+└── setup.py
