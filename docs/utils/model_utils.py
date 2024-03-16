@@ -68,18 +68,18 @@ def train_and_evaluate_gcn(train_data, val_data, test_data, hidden_dim=64, n_epo
                              residual=[True, True], batchnorm=[True, True], dropout=[dropout_rate, dropout_rate]).to(device)
         optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=l1_regularization)
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
-        
+
         best_val_loss = float('inf')
         for epoch in range(n_epochs):
             train_loss = train_gcn(model, optimizer, train_data, device, dropout_rate)
             val_loss = evaluate_gcn(model, val_data, device, dropout_rate)
-            
+
             if val_loss < best_val_loss:
                 best_val_loss = val_loss
                 best_model = model.state_dict()
-            
+
             scheduler.step()
-        
+
         model.load_state_dict(best_model)
         test_loss = evaluate_gcn(model, test_data, device, dropout_rate=0.0)
         return model, test_loss
@@ -93,17 +93,17 @@ def train_and_evaluate_rf(X, y, n_splits=5, n_estimators=100, max_depth=None):
     try:
         kf = KFold(n_splits=n_splits, shuffle=True, random_state=42)
         cv_scores = []
-        
+
         for train_index, test_index in kf.split(X):
             X_train, X_test = X.iloc[train_index], X.iloc[test_index]
             y_train, y_test = y.iloc[train_index], y.iloc[test_index]
-            
+
             model = RandomForestRegressor(n_estimators=n_estimators, max_depth=max_depth, random_state=42)
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
             mse = mean_squared_error(y_test, y_pred)
             cv_scores.append(mse)
-        
+
         return model, np.mean(cv_scores)
     except Exception as e:
         print(f"Error training and evaluating Random Forest model: {e}")
