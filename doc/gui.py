@@ -15,27 +15,25 @@ import traceback
 
 try:
     from utils.quantum_utils import extract_quantum_features
+    from utils.descriptor_utils import calculate_descriptors
 except ImportError:
-    print("Error: Failed to import extract_quantum_features from utils.quantum_utils.")
+    print("Error: Failed to import required modules from utils.")
     sys.exit(1)
 
 class GUIApp(tk.Tk):
-    def __init__(self):
+    def __init__(self, models, scaler, standard_compounds):
         super().__init__()
         self.title("Compound Activity Predictor")
         self.geometry("800x600")
-        self.data_dir = os.path.join(os.getcwd(), 'data')
+        self.models = models
+        self.scaler = scaler
+        self.standard_compounds = standard_compounds
         self.create_widgets()
         self.prediction_thread = None
         self.prediction_event = threading.Event()
 
-        try:
-            self.load_data()
-            self.load_models()
-        except Exception as e:
-            self.handle_error(e)
-
     def create_widgets(self):
+        """Create the GUI widgets."""
         self.input_frame = ttk.LabelFrame(self, text="Input")
         self.input_frame.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
 
@@ -88,30 +86,8 @@ class GUIApp(tk.Tk):
         self.time_label = ttk.Label(self.progress_frame, text="")
         self.time_label.pack()
 
-    def load_data(self):
-        try:
-            self.standard_compounds_data = pd.read_csv(os.path.join(self.data_dir, 'standard_compounds.csv'))
-        except Exception as e:
-            self.handle_error(e, "Error loading standard compounds data")
-
-    def load_models(self):
-        model_dir = os.path.join(self.data_dir, 'models')
-        metrics_dir = os.path.join(self.data_dir, 'metrics')
-
-        try:
-            self.gcn_model = torch.load(os.path.join(model_dir, 'gcn_model.pt'))
-            self.rf_model = pd.read_pickle(os.path.join(model_dir, 'rf_model.pkl'))
-            self.models = {'gcn': self.gcn_model, 'rf': self.rf_model}
-        except Exception as e:
-            self.handle_error(e, "Error loading trained models")
-
-        try:
-            self.gcn_metrics = pd.read_csv(os.path.join(metrics_dir, 'gcn_metrics.csv'))
-            self.rf_metrics = pd.read_csv(os.path.join(metrics_dir, 'rf_metrics.csv'))
-        except Exception as e:
-            self.handle_error(e, "Error loading evaluation metrics")
-
     def paste_input(self):
+        """Paste the input from the clipboard."""
         try:
             iupac_or_smiles = self.clipboard_get()
             self.input_entry.delete(0, tk.END)
@@ -120,6 +96,7 @@ class GUIApp(tk.Tk):
             self.handle_error(e, "Error pasting input")
 
     def reset_input(self):
+        """Reset the input field and clear the results."""
         self.input_entry.delete(0, tk.END)
         self.structure_canvas.delete("all")
         self.result_text.delete('1.0', tk.END)
@@ -127,6 +104,7 @@ class GUIApp(tk.Tk):
         self.canvas.draw()
 
     def start_prediction(self):
+        """Start the prediction process in a separate thread."""
         if self.prediction_thread is None or not self.prediction_thread.is_alive():
             self.prediction_event.clear()
             self.prediction_thread = threading.Thread(target=self.predict)
@@ -135,6 +113,7 @@ class GUIApp(tk.Tk):
             self.progress_label.config(text="Prediction in progress...")
 
     def stop_prediction(self):
+        """Stop the prediction process."""
         if self.prediction_thread is not None and self.prediction_thread.is_alive():
             self.prediction_event.set()
             self.prediction_thread.join()
@@ -143,6 +122,7 @@ class GUIApp(tk.Tk):
         self.time_label.config(text="")
 
     def predict(self):
+        """Perform the prediction and display the results."""
         iupac_or_smiles = self.input_entry.get()
         try:
             mol = Chem.MolFromSmiles(iupac_or_smiles)
@@ -191,8 +171,7 @@ class GUIApp(tk.Tk):
 
         try:
             standard_predictions = {}
-            for _, row in self.standard_compounds_data.iterrows():
-                smiles = row['smiles']
+            for name, smiles in self.standard_compounds.items():
                 mol = Chem.MolFromSmiles(smiles)
                 graph = dgl.smiles_to_bigraph(smiles)
                 descriptors = calculate_descriptors(mol)
@@ -200,17 +179,19 @@ class GUIApp(tk.Tk):
                 X_input = pd.DataFrame([pd.concat([graph, descriptors, quantum_features])])
                 gcn_pred = self.models['gcn'](X_input.to(device)).item()
                 gcn_pred_rescaled = self.scaler.inverse_transform([[gcn_pred]])[0][0]
-                standard_predictions[row['name']] = gcn_pred_rescaled
+                standard_predictions[name] = gcn_pred_rescaled
         except Exception as e:
             self.handle_error(e, "Error predicting for standard compounds")
 
         try:
             result_text = f"GCN Prediction:\nPredicted pIC50: {gcn_pred_rescaled:.2f}\n"
-            result_text += f"Accuracy: {self.gcn_metrics['accuracy']:.2f}, F1-score: {self.gcn_metrics['f1_score']:.2f}\n"
-            result_text += f"Confusion Matrix:\n{self.gcn_metrics['confusion_matrix']}\n\n"
+            result_text += f"Accuracy: {self.models['gcn'].metrics['accuracy']:.2f}, F1-score: {self.models['gcn'].metrics['f1_score']:.2f}\n"
+            result_text += f"Confusion Matrix:\n{self.models['gcn'].metrics['confusion_matrix']}\n"
+            result_text += f"R^2: {self.models['gcn'].metrics['r2']:.2f}, 95% CI: [{self.models['gcn'].metrics['confidence_interval'][0]:.2f}, {self.models['gcn'].metrics['confidence_interval'][1]:.2f}]\n\n"
             result_text += f"Random Forest Prediction:\nPredicted pIC50: {rf_pred_rescaled:.2f}\n"
-            result_text += f"Accuracy: {self.rf_metrics['accuracy']:.2f}, F1-score: {self.rf_metrics['f1_score']:.2f}\n"
-            result_text += f"Confusion Matrix:\n{self.rf_metrics['confusion_matrix']}\n\n"
+            result_text += f"Accuracy: {self.models['rf'].metrics['accuracy']:.2f}, F1-score: {self.models['rf'].metrics['f1_score']:.2f}\n"
+            result_text += f"Confusion Matrix:\n{self.models['rf'].metrics['confusion_matrix']}\n"
+            result_text += f"R^2: {self.models['rf'].metrics['r2']:.2f}, 95% CI: [{self.models['rf'].metrics['confidence_interval'][0]:.2f}, {self.models['rf'].metrics['confidence_interval'][1]:.2f}]\n\n"
             result_text += "Standard Compounds Predictions:\n"
             for name, pred in standard_predictions.items():
                 result_text += f"{name}: {pred:.2f}\n"
@@ -252,20 +233,14 @@ class GUIApp(tk.Tk):
         print(traceback.format_exc())
         messagebox.showerror("Error", f"{error_message}\n\n{exception}")
 
-def calculate_descriptors(mol):
-    """Calculate descriptors for a given compound"""
-    descriptors = []
+def run_gui_app(models, scaler, standard_compounds):
+    """
+    Run the GUI application.
 
-    # Basic descriptors
-    descriptors.append(Descriptors.MolWt(mol))
-    descriptors.append(Descriptors.HeavyAtomCount(mol))
-    # Add other descriptors...
-
-    return descriptors
-
-def run_gui_app():
-    app = GUIApp()
+    Args:
+        models (dict): Dictionary containing the trained GCN and Random Forest models.
+        scaler (object): Scaler object used for data normalization.
+        standard_compounds (dict): Dictionary containing the SMILES of standard compounds.
+    """
+    app = GUIApp(models, scaler, standard_compounds)
     app.mainloop()
-
-if __name__ == "__main__":
-    run_gui_app()
