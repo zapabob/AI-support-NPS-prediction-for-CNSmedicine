@@ -4,16 +4,16 @@ from chembl_webresource_client.new_client import new_client
 from sklearn.preprocessing import StandardScaler
 from dgllife.utils import smiles_to_bigraph, CanonicalAtomFeaturizer, CanonicalBondFeaturizer
 
-# Internal data: SMILES of standard compounds
+# Internal data: SMILES and IUPAC names of standard compounds
 standard_compounds = {
-    'D-Amphetamine': 'CC(N)Cc1ccccc1',
-    'Cocaine': 'COC(=O)C1C(OC(=O)c2ccccc2)CC2CCC1N2C',
-    'Methylphenidate': 'COC(=O)C(C1CCCCN1)c1ccccc1',
-    'LSD-25': 'CCN(CC)C(=O)C1CN(C)C2CC3=CNC4=CC=CC(=C34)C2=C1',
-    'MDMA': 'CC(NC)Cc1ccc2c(c1)OCO2',
-    '2C-B': 'CC(Cc1ccc2c(c1)OCO2)NC',
-    'Psilocybin': 'CN(C)CCc1c[nH]c2cccc(OP(=O)(O)O)c12',
-    'Mescaline': 'COc1cc(CC(=O)O)cc2c1occc2'
+    'D-Amphetamine': {'smiles': 'CC(N)Cc1ccccc1', 'iupac': '(R)-1-phenylpropan-2-amine'},
+    'Cocaine': {'smiles': 'COC(=O)C1C(OC(=O)c2ccccc2)CC2CCC1N2C', 'iupac': 'methyl (1R,2R,3S,5S)-3-(benzoyloxy)-8-methyl-8-azabicyclo[3.2.1]octane-2-carboxylate'},
+    'Methylphenidate': {'smiles': 'COC(=O)C(C1CCCCN1)c1ccccc1', 'iupac': 'methyl 2-phenyl-2-(piperidin-2-yl)acetate'},
+    'LSD-25': {'smiles': 'CCN(CC)C(=O)C1CN(C)C2CC3=CNC4=CC=CC(=C34)C2=C1', 'iupac': '(6aR,9R)-N,N-diethyl-7-methyl-4,6,6a,7,8,9-hexahydroindolo[4,3-fg]quinoline-9-carboxamide'},
+    'MDMA': {'smiles': 'CC(NC)Cc1ccc2c(c1)OCO2', 'iupac': '1-(benzo[d][1,3]dioxol-5-yl)-N-methylpropan-2-amine'},
+    '2C-B': {'smiles': 'CC(Cc1ccc2c(c1)OCO2)NC', 'iupac': '2-(4-bromo-2,5-dimethoxyphenyl)ethanamine'},
+    'Psilocybin': {'smiles': 'CN(C)CCc1c[nH]c2cccc(OP(=O)(O)O)c12', 'iupac': '3-[2-(dimethylamino)ethyl]-1H-indol-4-yl dihydrogen phosphate'},
+    'Mescaline': {'smiles': 'COc1cc(CC(N)O)cc2c1occc2', 'iupac': '3,4,5-trimethoxyphenethylamine'}
 }
 
 def load_chembl_data(target_ids):
