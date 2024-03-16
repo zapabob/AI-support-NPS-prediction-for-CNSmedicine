@@ -13,7 +13,7 @@ standard_compounds = {
     'MDMA': {'smiles': 'CC(NC)Cc1ccc2c(c1)OCO2', 'iupac': '1-(benzo[d][1,3]dioxol-5-yl)-N-methylpropan-2-amine'},
     '2C-B': {'smiles': 'CC(Cc1ccc2c(c1)OCO2)NC', 'iupac': '2-(4-bromo-2,5-dimethoxyphenyl)ethanamine'},
     'Psilocybin': {'smiles': 'CN(C)CCc1c[nH]c2cccc(OP(=O)(O)O)c12', 'iupac': '3-[2-(dimethylamino)ethyl]-1H-indol-4-yl dihydrogen phosphate'},
-    'Mescaline': {'smiles': 'COc1cc(CC(N)O)cc2c1occc2', 'iupac': '3,4,5-trimethoxyphenethylamine'}
+    'Mescaline': {'smiles': 'COc1cc(CC(N)=O)cc2c1occc2', 'iupac': '3,4,5-trimethoxyphenethylamine'}
 }
 
 def load_chembl_data(target_ids):
